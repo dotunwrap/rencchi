@@ -34,16 +34,25 @@ impl Session {
     }
 }
 
+/// D&D Sessions (subcommand required)
+///
+/// (SLASH | PREFIX) session <subcommand>
 #[poise::command(
+    prefix_command,
     slash_command,
-    subcommands("create", "remove", "list"),
+    subcommands("create", "cancel", "list"),
+    subcommand_required,
     category = "D&D"
 )]
 pub async fn session(_ctx: Context<'_>) -> Result<(), Error> {
     Ok(())
 }
 
-#[poise::command(slash_command)]
+/// Creates a new D&D session
+///
+/// (SLASH | PREFIX) session create <scheduled_date>
+/// The scheduled date must be in the future
+#[poise::command(prefix_command, slash_command)]
 pub async fn create(
     ctx: Context<'_>,
     #[description = "Scheduled date"] scheduled_date: String,
@@ -98,12 +107,39 @@ pub async fn create(
     responses::success(ctx, "Session created.").await
 }
 
-#[poise::command(slash_command)]
-pub async fn remove(_ctx: Context<'_>) -> Result<(), Error> {
+/// Cancels a D&D session
+///
+/// (SLASH | PREFIX) session cancel <session_id>
+#[poise::command(prefix_command, slash_command)]
+pub async fn cancel(
+    _ctx: Context<'_>,
+    #[description = "Session ID"] _session_id: i64,
+) -> Result<(), Error> {
     todo!()
 }
 
-#[poise::command(slash_command)]
+/// Deletes all D&D sessions (owner only)
+///
+/// (SLASH | PREFIX) session clear_all
+#[poise::command(prefix_command, slash_command, owners_only)]
+pub async fn clear_all(ctx: Context<'_>) -> Result<(), Error> {
+    let conn = db::init_db(DND_DB).await?;
+
+    for row in conn
+        .prepare("DELETE FROM sessions")?
+        .into_iter()
+        .map(|row| row.unwrap())
+    {
+        println!("{:?}", row);
+    }
+
+    responses::success(ctx, "All sessions deleted.").await
+}
+
+/// Lists all D&D sessions
+///
+/// (SLASH | PREFIX) session list
+#[poise::command(prefix_command, slash_command)]
 pub async fn list(_ctx: Context<'_>) -> Result<(), Error> {
     let conn = db::init_db(DND_DB).await?;
     let mut embeds: Vec<serenity::CreateEmbed> = vec![];

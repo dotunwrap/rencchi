@@ -1,10 +1,16 @@
-use crate::{responses, Context, Error};
+use crate::{responses, utils::staff, Context, Error};
 use std::{thread, time::Duration};
 
+/// Purges message(s) (staff only)
+///
+/// (SLASH | PREFIX) purge [amount] [purge-all]
+/// [amount] is the number of messages to purge. It must be between 1 and 100. It defaults to 100 if not specified.
+/// [purge-all] determines whether to purge all messages in the channel. It defaults to false if not specified.
+/// If [purge-all] is true, [amount] is ignored.
 #[poise::command(
     prefix_command,
     slash_command,
-    owners_only,
+    check = "staff::staff_check",
     required_bot_permissions = "MANAGE_MESSAGES",
     category = "Moderation"
 )]

@@ -1,7 +1,15 @@
 use crate::{Context, Error};
 use poise::serenity_prelude as serenity;
 
-#[poise::command(context_menu_command = "User info", prefix_command, slash_command)]
+/// Gets info regarding a user
+///
+/// (PREFIX | SLASH) user info <user>
+#[poise::command(
+    context_menu_command = "User info",
+    prefix_command,
+    slash_command,
+    category = "User"
+)]
 pub async fn user_info(
     ctx: Context<'_>,
     #[description = "User to get info on"] user: serenity::User,

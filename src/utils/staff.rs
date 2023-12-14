@@ -1,4 +1,4 @@
-use crate::{Context, Error};
+use crate::{responses, Context, Error};
 use poise::serenity_prelude as serenity;
 
 pub async fn author_is_staff(ctx: Context<'_>) -> Result<bool, Error> {
@@ -8,4 +8,13 @@ pub async fn author_is_staff(ctx: Context<'_>) -> Result<bool, Error> {
         .unwrap()
         .roles
         .contains(&serenity::RoleId::from(ctx.data().staff_role)))
+}
+
+pub async fn staff_check(ctx: Context<'_>) -> Result<bool, Error> {
+    if !author_is_staff(ctx).await.unwrap() {
+        responses::not_staff(ctx).await.unwrap();
+        return Ok(false);
+    }
+
+    Ok(true)
 }

@@ -88,6 +88,7 @@ async fn main() {
                 welcome::welcome(),
                 user::user_info(),
                 dnd::session::session(),
+                dnd::dice::roll(),
             ],
             prefix_options: poise::PrefixFrameworkOptions {
                 prefix: Some(".".into()),
