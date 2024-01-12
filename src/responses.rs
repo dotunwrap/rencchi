@@ -22,6 +22,7 @@ pub async fn invalid_permissions(ctx: Context<'_>) -> Result<(), Error> {
 pub async fn paginate_embeds(
     ctx: Context<'_>,
     embeds: Vec<serenity::CreateEmbed>,
+    // custom_buttons: Option<Vec<serenity::CreateButton>>,
 ) -> Result<(), Error> {
     if embeds.is_empty() {
         return failure(ctx, "No results found.").await;
@@ -30,6 +31,15 @@ pub async fn paginate_embeds(
     let ctx_id = ctx.id();
     let prev_button_id = format!("{}_prev", ctx_id);
     let next_button_id = format!("{}_next", ctx_id);
+    // TODO: Allow for custom buttons with custom callbacks on press
+    // let mut buttons = vec![
+    //     serenity::CreateButton::new(&prev_button_id).emoji("⬅".chars().next().unwrap()),
+    //     serenity::CreateButton::new(&next_button_id).emoji("➡".chars().next().unwrap()),
+    // ];
+
+    // if let Some(custom_buttons) = custom_buttons {
+    //     buttons.splice(1..1, custom_buttons);
+    // }
 
     let reply = {
         let components = serenity::CreateActionRow::Buttons(vec![

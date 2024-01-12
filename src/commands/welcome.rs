@@ -2,8 +2,6 @@ use crate::{responses, utils::staff, Context, Error};
 use poise::serenity_prelude as serenity;
 
 /// Welcomes a new user and gives them the guest role (staff only)
-///
-/// (PREFIX | SLASH) welcome <user>
 #[poise::command(
     slash_command,
     prefix_command,

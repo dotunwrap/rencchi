@@ -2,7 +2,6 @@ use crate::{Context, Error};
 
 /// Shows the help menu
 ///
-/// (PREFIX | SLASH) help [command]
 /// If no command is provided, shows the help menu
 /// If a command is provided, shows the help menu for that command
 #[poise::command(prefix_command, track_edits, slash_command)]
