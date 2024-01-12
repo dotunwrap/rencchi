@@ -24,6 +24,7 @@ pub async fn purge(
     #[description = "Purge all messages in the channel"]
     purge_all: Option<bool>,
 ) -> Result<(), Error> {
+    ctx.defer().await?;
     let amount = amount.unwrap_or(100);
     let purge_all = purge_all.unwrap_or(false);
     let deleted_count = match purge_all {
@@ -43,8 +44,6 @@ async fn purge_all_messages(ctx: Context<'_>, count: Option<usize>) -> Result<us
         .channel_id()
         .messages(&ctx, serenity::builder::GetMessages::new().limit(100))
         .await?;
-
-    ctx.reply("Purge in progress...").await?;
 
     for message in &messages {
         count += 1;

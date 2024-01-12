@@ -12,7 +12,7 @@ pub async fn author_is_staff(ctx: Context<'_>) -> Result<bool, Error> {
 
 pub async fn staff_check(ctx: Context<'_>) -> Result<bool, Error> {
     if !author_is_staff(ctx).await.unwrap() {
-        responses::not_staff(ctx).await.unwrap();
+        responses::invalid_permissions(ctx).await.unwrap();
         return Ok(false);
     }
 

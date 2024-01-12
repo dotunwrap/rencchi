@@ -14,6 +14,7 @@ type Context<'a> = poise::Context<'a, Data, Error>;
 pub struct Data {
     pub welcome_role: u64,
     pub staff_role: u64,
+    pub dnd_role: u64,
     pub general_channel: u64,
 }
 
@@ -87,7 +88,7 @@ async fn main() {
                 purge::purge(),
                 welcome::welcome(),
                 user::user_info(),
-                dnd::session::session(),
+                dnd::campaign::session::session(),
                 dnd::dice::roll(),
             ],
             prefix_options: poise::PrefixFrameworkOptions {
@@ -116,6 +117,7 @@ async fn main() {
                 Ok(Data {
                     welcome_role: 878085322469150720,
                     staff_role: 877709018204889128,
+                    dnd_role: 901464574530814002,
                     general_channel: 877354423909756941,
                 })
             })
