@@ -87,6 +87,8 @@ async fn main() {
                 purge::purge(),
                 welcome::welcome(),
                 user::user_info(),
+                user::whois(),
+                user::iam(),
             ],
             prefix_options: poise::PrefixFrameworkOptions {
                 prefix: Some(".".into()),

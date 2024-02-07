@@ -1,4 +1,4 @@
-use crate::{Context, Error};
+use crate::{responses, Context, Error};
 use poise::serenity_prelude as serenity;
 
 /// Gets info regarding a user
@@ -32,4 +32,36 @@ pub async fn user_info(
     .await?;
 
     Ok(())
+}
+
+#[poise::command(
+    context_menu_command = "Who is",
+    prefix_command,
+    slash_command,
+    category = "User"
+)]
+pub async fn whois(ctx: Context<'_>, user: serenity::User) -> Result<(), Error> {
+    let mut irl_name: Option<String> = None;
+    let nickname = match ctx.guild_id() {
+        Some(guild_id) => user.nick_in(ctx, guild_id).await,
+        None => None,
+    };
+    let discord_name = nickname.as_ref().unwrap_or(&user.name);
+
+    if irl_name.is_none() {
+        return responses::failure(
+            ctx,
+            &format!("{} has not set their IRL name.", discord_name),
+        )
+        .await;
+    }
+
+    let irl_name = "";
+
+    responses::success(ctx, &format!("{} is {}", discord_name, irl_name)).await
+}
+
+#[poise::command(prefix_command, slash_command, category = "User")]
+pub async fn iam(ctx: Context<'_>, name: String) -> Result<(), Error> {
+    responses::success(ctx, &format!("Name updated! You are {}", name)).await
 }
