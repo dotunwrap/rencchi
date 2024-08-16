@@ -1,0 +1,12 @@
+[general]
+prefix = "!" # prefix for commands
+
+[roles]
+new_user_role_id = 0000000000000000000 # role id for new users
+welcomed_user_role_id = 000000000000000000 # role id for welcomed users
+welcome_party_role_id = 0000000000000000000 # role id for people able to welcome users
+staff_role_id = 000000000000000000 # role id for staff
+
+[channels]
+new_user_channel_id = 0000000000000000000 # channel id for new users
+general_channel_id = 000000000000000000 # channel id for the general purpose channel

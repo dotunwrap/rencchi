@@ -13,7 +13,7 @@ pub async fn failure(ctx: Context<'_>, msg: &str) -> Result<(), Error> {
 pub async fn invalid_permissions(ctx: Context<'_>) -> Result<(), Error> {
     failure(
         ctx,
-        "Error: You do not have permission to use this command.",
+        "You do not have permission to use this command. Please contact an administrator if you believe this is an error.",
     )
     .await
 }

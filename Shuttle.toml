@@ -1,0 +1,4 @@
+name = "rencchi"
+assets = [
+  "src/config.toml"
+]

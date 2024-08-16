@@ -1,4 +1,3 @@
-pub mod help;
-pub mod purge;
-pub mod user;
-pub mod welcome;
+pub mod misc;
+pub mod moderation;
+pub mod users;

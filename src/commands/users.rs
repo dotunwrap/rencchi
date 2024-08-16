@@ -1,7 +1,7 @@
-use crate::{Context, Error};
 use poise::serenity_prelude as serenity;
 
-/// Gets info regarding a user
+use crate::{Context, Error};
+
 #[poise::command(
     context_menu_command = "User info",
     prefix_command,
