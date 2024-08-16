@@ -123,7 +123,12 @@ async fn main(#[shuttle_runtime::Secrets] secret_store: SecretStore) -> ShuttleS
         .get("DISCORD_TOKEN")
         .context("'DISCORD_TOKEN' was not found")?;
 
-    let commands = vec![misc::help(), users::user_info()];
+    let commands = vec![
+        misc::help(),
+        users::user_info(),
+        moderation::purge(),
+        moderation::welcome(),
+    ];
 
     let framework = poise::Framework::<Data, Error>::builder()
         .options(poise::FrameworkOptions {
