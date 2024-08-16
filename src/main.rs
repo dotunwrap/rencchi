@@ -1,29 +1,60 @@
-#![warn(clippy::str_to_string)]
+use anyhow::Context as _;
+use poise::serenity_prelude as serenity;
+use serde::Deserialize;
+use shuttle_runtime::SecretStore;
+use shuttle_serenity::ShuttleSerenity;
+use std::{env::current_dir, fs::read_to_string, process::exit};
 
 use crate::commands::*;
-use dotenv::dotenv;
-use poise::serenity_prelude as serenity;
+use crate::utils::welcome::send_welcome_message;
 
 pub mod commands;
 pub mod responses;
 pub mod utils;
 
-type Error = Box<dyn std::error::Error + Send + Sync>;
-type Context<'a> = poise::Context<'a, Data, Error>;
-
-pub struct Data {
-    pub welcome_role: u64,
-    pub staff_role: u64,
-    pub general_channel: u64,
+#[derive(Deserialize)]
+pub struct GeneralConfig {
+    pub prefix: String,
 }
 
-async fn on_error(error: poise::FrameworkError<'_, Data, Error>) -> () {
+#[derive(Deserialize)]
+pub struct ChannelConfig {
+    pub new_user_channel_id: u64,
+    pub general_channel_id: u64,
+}
+
+#[derive(Deserialize)]
+pub struct RoleConfig {
+    pub new_user_role_id: u64,
+    pub welcomed_user_role_id: u64,
+    pub welcome_party_role_id: u64,
+    pub staff_role_id: u64,
+}
+
+#[derive(Deserialize)]
+pub struct Config {
+    pub general: GeneralConfig,
+    pub channels: ChannelConfig,
+    pub roles: RoleConfig,
+}
+
+pub struct Data {
+    config: Config,
+}
+
+type Error = Box<dyn std::error::Error + Send + Sync>;
+type Context<'a> = poise::Context<'a, Data, Error>;
+type _ApplicationContext<'a> = poise::ApplicationContext<'a, Data, Error>;
+
+async fn on_error(error: poise::FrameworkError<'_, Data, Error>) {
     match error {
-        poise::FrameworkError::Setup { error, .. } => panic!("Failed to start bot: {:?}", error),
+        poise::FrameworkError::Setup { error, .. } => {
+            panic!("Failed to build framework: {:?}", error)
+        }
         poise::FrameworkError::Command { error, ctx, .. } => {
             println!(
-                "Error running command '{}': {:?}",
-                ctx.command().name,
+                "Command '{}' returned an error: {}",
+                ctx.command().qualified_name,
                 error
             );
 
@@ -33,7 +64,7 @@ async fn on_error(error: poise::FrameworkError<'_, Data, Error>) -> () {
         }
         error => {
             if let Err(e) = poise::builtins::on_error(error).await {
-                println!("Error running built-in error handler: {:?}", e);
+                println!("Failed to call on_error: {}", e);
             }
         }
     }
@@ -47,91 +78,82 @@ async fn on_event(
 ) -> Result<(), Error> {
     match event {
         serenity::FullEvent::Ready { data_about_bot } => {
-            println!("Logged in as {}", data_about_bot.user.name)
+            println!("{} is connected!", data_about_bot.user.name)
         }
         serenity::FullEvent::GuildMemberAddition { new_member } => {
-            println!("New member: {}", new_member.user.name);
-
-            if new_member.user.bot {
-                return Ok(());
-            }
-
-            serenity::ChannelId::from(data.general_channel)
-                .say(
-                    ctx,
-                    format!(
-                        "<@&{}> New member: <@{}>",
-                        serenity::RoleId::from(data.staff_role),
-                        new_member.user.id,
-                    ),
-                )
-                .await
-                .unwrap();
+            send_welcome_message(ctx, data, new_member.user.clone()).await?
         }
-        _ => {}
+        _ => (),
     }
     Ok(())
 }
 
-#[tokio::main]
-async fn main() {
-    dotenv().ok();
+#[shuttle_runtime::main]
+async fn main(#[shuttle_runtime::Secrets] secret_store: SecretStore) -> ShuttleSerenity {
+    // Handle loading the config
+    let config_file = current_dir()?.join("src/config.toml");
 
-    let framework = poise::Framework::builder()
+    let contents = match read_to_string(config_file.clone()) {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!(
+                "Could not read config file {}: {}",
+                config_file.display(),
+                e
+            );
+            exit(1);
+        }
+    };
+
+    let config: Config = match toml::from_str(&contents) {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!(
+                "Could not parse config file {}: {}",
+                config_file.display(),
+                e
+            );
+            exit(1);
+        }
+    };
+
+    // The Discord token is stored in Secrets.toml
+    // Shuttle can also read a dev token from Secrets.dev.toml
+    let discord_token = secret_store
+        .get("DISCORD_TOKEN")
+        .context("'DISCORD_TOKEN' was not found")?;
+
+    let commands = vec![misc::help(), users::user_info()];
+
+    let framework = poise::Framework::<Data, Error>::builder()
         .options(poise::FrameworkOptions {
             event_handler: |_ctx, event, _framework, _data| {
                 Box::pin(on_event(_ctx, event, _framework, _data))
             },
-            commands: vec![
-                help::help(),
-                purge::purge(),
-                welcome::welcome(),
-                user::user_info(),
-            ],
+            commands,
             prefix_options: poise::PrefixFrameworkOptions {
-                prefix: Some(".".into()),
-                edit_tracker: Some(Into::into(poise::EditTracker::for_timespan(
-                    std::time::Duration::from_secs(60),
-                ))),
+                prefix: Some(config.general.prefix.clone()),
                 ..Default::default()
             },
             on_error: |error| Box::pin(on_error(error)),
-            command_check: Some(|ctx| {
-                Box::pin(async move {
-                    Ok(ctx
-                        .author_member()
-                        .await
-                        .unwrap()
-                        .roles
-                        .contains(&serenity::RoleId::from(ctx.data().welcome_role)))
-                })
-            }),
             ..Default::default()
         })
-        .setup(move |ctx, _ready, framework| {
+        .setup(|ctx, _ready, framework| {
             Box::pin(async move {
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;
-                Ok(Data {
-                    welcome_role: 878085322469150720,
-                    staff_role: 877709018204889128,
-                    general_channel: 877354423909756941,
-                })
+                Ok(Data { config })
             })
         })
         .build();
 
-    serenity::ClientBuilder::new(
-        std::env::var("DISCORD_TOKEN").expect("Missing Discord token"),
-        serenity::GatewayIntents::non_privileged()
-            | serenity::GatewayIntents::MESSAGE_CONTENT
-            | serenity::GatewayIntents::GUILD_MEMBERS,
-    )
-    .framework(framework)
-    .await
-    .unwrap()
-    .start()
-    .await
-    .unwrap();
-}
+    let intents = serenity::GatewayIntents::non_privileged()
+        | serenity::GatewayIntents::MESSAGE_CONTENT
+        | serenity::GatewayIntents::GUILD_MEMBERS;
 
-// Made with ❤ by dotunwrap
+    let client = serenity::ClientBuilder::new(discord_token, intents)
+        .framework(framework)
+        .await
+        .map_err(shuttle_runtime::CustomError::new)?;
+
+    Ok(client.into())
+}

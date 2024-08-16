@@ -1,15 +1,35 @@
-use crate::{responses, utils::staff, Context, Error};
+use poise::serenity_prelude as serenity;
 use std::{thread, time::Duration};
 
-/// Purges message(s) (staff only)
-///
-/// [amount] is the number of messages to purge. It must be between 1 and 100. It defaults to 100 if not specified.
-/// [purge-all] determines whether to purge all messages in the channel. It defaults to false if not specified.
-/// If [purge-all] is true, [amount] is ignored.
+use crate::responses::{failure, success};
+use crate::utils::staff::has_staff_role_check;
+use crate::{Context, Error};
+
+// TODO: Add check that the user has the welcoming party role
+#[poise::command(prefix_command, slash_command, category = "Moderation")]
+pub async fn welcome(ctx: Context<'_>, member: serenity::Member) -> Result<(), Error> {
+    if let Err(e) = member
+        .add_role(
+            ctx,
+            serenity::RoleId::from(ctx.data().config.roles.welcomed_user_role_id),
+        )
+        .await
+    {
+        eprintln!("{}", e);
+        return failure(ctx, "Failed to add the role.").await;
+    }
+
+    serenity::ChannelId::from(ctx.data().config.channels.general_channel_id)
+        .say(ctx, format!("Welcome to the server, <@{}>", member.user.id))
+        .await?;
+
+    Ok(())
+}
+
 #[poise::command(
     prefix_command,
     slash_command,
-    check = "staff::staff_check",
+    check = "has_staff_role_check",
     required_bot_permissions = "MANAGE_MESSAGES",
     category = "Moderation"
 )]
@@ -32,8 +52,8 @@ pub async fn purge(
     };
 
     match deleted_count {
-        1 => responses::success(ctx, "Purged 1 message.").await,
-        _ => responses::success(ctx, &format!("Purged {} messages.", deleted_count)).await,
+        1 => success(ctx, "Purged 1 message.").await,
+        _ => success(ctx, &format!("Purged {} messages.", deleted_count)).await,
     }
 }
 
