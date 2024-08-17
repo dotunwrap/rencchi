@@ -81,6 +81,9 @@ async fn on_event(
             println!("{} is connected!", data_about_bot.user.name)
         }
         serenity::FullEvent::GuildMemberAddition { new_member } => {
+            new_member
+                .add_role(ctx, data.config.roles.new_user_role_id)
+                .await?;
             send_welcome_message(ctx, data, new_member.user.clone()).await?
         }
         _ => (),

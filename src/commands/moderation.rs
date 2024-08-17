@@ -3,16 +3,23 @@ use std::{thread, time::Duration};
 
 use crate::responses::{failure, success};
 use crate::utils::staff::has_staff_role_check;
+use crate::utils::welcome::has_welcoming_party_role_check;
 use crate::{Context, Error};
 
-// TODO: Add check that the user has the welcoming party role
-#[poise::command(prefix_command, slash_command, category = "Moderation")]
+#[poise::command(
+    prefix_command,
+    slash_command,
+    check = "has_welcoming_party_role_check",
+    required_bot_permissions = "MANAGE_ROLES",
+    category = "Moderation"
+)]
 pub async fn welcome(ctx: Context<'_>, member: serenity::Member) -> Result<(), Error> {
+    member
+        .remove_role(ctx, ctx.data().config.roles.new_user_role_id)
+        .await?;
+
     if let Err(e) = member
-        .add_role(
-            ctx,
-            serenity::RoleId::from(ctx.data().config.roles.welcomed_user_role_id),
-        )
+        .add_role(ctx, ctx.data().config.roles.welcomed_user_role_id)
         .await
     {
         eprintln!("{}", e);
@@ -47,8 +54,8 @@ pub async fn purge(
     let amount = amount.unwrap_or(100);
     let purge_all = purge_all.unwrap_or(false);
     let deleted_count = match purge_all {
-        true => self::purge_all_messages(ctx, None).await.unwrap(),
-        false => self::purge_messages(ctx, amount).await.unwrap(),
+        true => self::purge_all_messages(ctx, None).await?,
+        false => self::purge_messages(ctx, amount).await?,
     };
 
     match deleted_count {
