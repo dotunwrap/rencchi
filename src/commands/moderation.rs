@@ -81,7 +81,7 @@ async fn purge_all_messages(ctx: Context<'_>, count: Option<usize>) -> Result<us
 }
 
 async fn purge_messages(ctx: Context<'_>, mut amount: usize) -> Result<usize, Error> {
-    if ctx.prefix() == "." {
+    if ctx.prefix() != "/" {
         amount += 1;
     }
 
@@ -99,11 +99,11 @@ async fn purge_messages(ctx: Context<'_>, mut amount: usize) -> Result<usize, Er
         .delete_messages(&ctx, messages_to_delete)
         .await?;
 
-    Ok(if ctx.prefix() == "." {
-        amount - 1
-    } else {
-        amount
-    })
+    if ctx.prefix() != "/" {
+        return Ok(amount - 1);
+    }
+
+    Ok(amount)
 }
 
 async fn purge_message(
